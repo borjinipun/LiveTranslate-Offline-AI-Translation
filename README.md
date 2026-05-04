@@ -6,7 +6,7 @@ All processing happens locally on your device. No server required. No data leave
 
 ## 🌟 Live URL
 
-🔗 Use the app at [https://borjinipun.github.io/webllm-rag-chat/](https://borjinipun.github.io/webllm-rag-chat/)
+🔗 Use the app at [https://borjinipun.github.io/LiveTranslate-Offline-AI-Translation/](https://borjinipun.github.io/LiveTranslate-Offline-AI-Translation/)
 
 ## ✅ Features
 
