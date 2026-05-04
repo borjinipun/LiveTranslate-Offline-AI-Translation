@@ -153,9 +153,10 @@ export default class TranslationEngine {
    * @param {string}      opts.sourceName  - e.g. "English"
    * @param {string}      opts.targetName  - e.g. "French"
    * @param {HTMLElement} opts.outputEl    - Element to stream tokens into
+   * @param {Function}    [opts.onSentence] - Called with each translated sentence
    * @returns {Promise<string>} The full translated text
    */
-  async translate({ text, sourceName, targetName, outputEl }) {
+  async translate({ text, sourceName, targetName, outputEl, onSentence }) {
     if (!this.engine) throw new Error('No model loaded.')
     if (!text || !text.trim()) return ''
 
@@ -179,10 +180,21 @@ export default class TranslationEngine {
 
     let result = ''
     let isFirst = true
+    let sentenceBuffer = ''
 
     for await (const chunk of stream) {
       const token = chunk.choices[0]?.delta?.content || ''
       result += token
+      sentenceBuffer += token
+
+      if (onSentence) {
+        let match
+        while ((match = sentenceBuffer.match(/([^.!?。！？\n]+[.!?。！？\n]+)(\s*)/))) {
+          const sentence = match[1].trim()
+          if (sentence) onSentence(sentence)
+          sentenceBuffer = sentenceBuffer.substring(match[0].length)
+        }
+      }
 
       if (isFirst) {
         outputEl.classList.remove('streaming')
@@ -191,6 +203,10 @@ export default class TranslationEngine {
 
       outputEl.textContent = result
       outputEl.scrollTop = outputEl.scrollHeight
+    }
+
+    if (onSentence && sentenceBuffer.trim()) {
+      onSentence(sentenceBuffer.trim())
     }
 
     outputEl.classList.remove('streaming')

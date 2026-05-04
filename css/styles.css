@@ -313,6 +313,11 @@ body::before {
   background: rgba(255,255,255,0.1);
   color: var(--text-primary);
 }
+.icon-btn.active {
+  background: rgba(129,140,248,.15);
+  border-color: var(--accent-1);
+  color: var(--accent-1);
+}
 .icon-btn:disabled { opacity: .35; cursor: not-allowed; }
 
 /* Unsupported mic */

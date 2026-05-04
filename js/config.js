@@ -4,18 +4,27 @@
 
 // ── Supported Languages ──────────────────────────────────────────────────────
 export const SUPPORTED_LANGUAGES = [
-  { code: 'en', name: 'English',    flag: '🇬🇧' },
-  { code: 'zh', name: 'Chinese',    flag: '🇨🇳' },
-  { code: 'es', name: 'Spanish',    flag: '🇪🇸' },
-  { code: 'fr', name: 'French',     flag: '🇫🇷' },
-  { code: 'de', name: 'German',     flag: '🇩🇪' },
-  { code: 'ja', name: 'Japanese',   flag: '🇯🇵' },
-  { code: 'ko', name: 'Korean',     flag: '🇰🇷' },
-  { code: 'ar', name: 'Arabic',     flag: '🇸🇦' },
-  { code: 'pt', name: 'Portuguese', flag: '🇵🇹' },
-  { code: 'ru', name: 'Russian',    flag: '🇷🇺' },
-  { code: 'hi', name: 'Hindi',      flag: '🇮🇳' },
-  { code: 'it', name: 'Italian',    flag: '🇮🇹' },
+  { code: 'en', name: 'English',    flag: '🇬🇧', bcp47: 'en-US' },
+  { code: 'zh', name: 'Chinese',    flag: '🇨🇳', bcp47: 'zh-CN' },
+  { code: 'es', name: 'Spanish',    flag: '🇪🇸', bcp47: 'es-ES' },
+  { code: 'fr', name: 'French',     flag: '🇫🇷', bcp47: 'fr-FR' },
+  { code: 'de', name: 'German',     flag: '🇩🇪', bcp47: 'de-DE' },
+  { code: 'ja', name: 'Japanese',   flag: '🇯🇵', bcp47: 'ja-JP' },
+  { code: 'ko', name: 'Korean',     flag: '🇰🇷', bcp47: 'ko-KR' },
+  { code: 'ar', name: 'Arabic',     flag: '🇸🇦', bcp47: 'ar-SA' },
+  { code: 'pt', name: 'Portuguese', flag: '🇵🇹', bcp47: 'pt-BR' },
+  { code: 'ru', name: 'Russian',    flag: '🇷🇺', bcp47: 'ru-RU' },
+  { code: 'hi', name: 'Hindi',      flag: '🇮🇳', bcp47: 'hi-IN' },
+  { code: 'bn', name: 'Bengali',    flag: '🇮🇳', bcp47: 'bn-IN' },
+  { code: 'te', name: 'Telugu',     flag: '🇮🇳', bcp47: 'te-IN' },
+  { code: 'mr', name: 'Marathi',    flag: '🇮🇳', bcp47: 'mr-IN' },
+  { code: 'ta', name: 'Tamil',      flag: '🇮🇳', bcp47: 'ta-IN' },
+  { code: 'ur', name: 'Urdu',       flag: '🇮🇳', bcp47: 'ur-IN' },
+  { code: 'gu', name: 'Gujarati',   flag: '🇮🇳', bcp47: 'gu-IN' },
+  { code: 'kn', name: 'Kannada',    flag: '🇮🇳', bcp47: 'kn-IN' },
+  { code: 'ml', name: 'Malayalam',  flag: '🇮🇳', bcp47: 'ml-IN' },
+  { code: 'pa', name: 'Punjabi',    flag: '🇮🇳', bcp47: 'pa-IN' },
+  { code: 'it', name: 'Italian',    flag: '🇮🇹', bcp47: 'it-IT' },
 ]
 
 // ── Translation Prompt Builder ───────────────────────────────────────────────
@@ -92,6 +101,7 @@ export const ELEMENT_IDS = {
   micBtn:            'mic-btn',
   micStatus:         'mic-status',
   clearBtn:          'clear-btn',
+  ttsToggleBtn:      'tts-toggle-btn',
 
   // Transcript history
   transcriptPanel:   'transcript-panel',

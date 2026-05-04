@@ -13,6 +13,7 @@ import { populateModelSelect } from './utils/ui.js'
 import TranslationEngine from './models/llm-model.js'
 import SpeechInputManager from './utils/speech.js'
 import TranscriptHistory from './utils/transcript.js'
+import TTSManager from './utils/tts.js'
 
 class TranslationApp {
   constructor() {
@@ -20,13 +21,17 @@ class TranslationApp {
     this.engine = new TranslationEngine()
     this.speech = new SpeechInputManager()
     this.history = new TranscriptHistory()
+    this.tts = new TTSManager()
 
     this.isModelLoading = false
     this.isTranslating = false
+    this._pendingTranslation = null
     this.warningDismissed = false
 
     // Current interim mic text (not yet finalized)
     this._interimText = ''
+    // Base text before the current speech segment started
+    this._baseText = ''
     // Debounce timer for auto-translate on text input
     this._debounceTimer = null
   }
@@ -142,6 +147,21 @@ class TranslationApp {
       this.history.clear()
       this.history.render(this.elements.transcriptList)
     })
+
+    // TTS Toggle
+    if (this.elements.ttsToggleBtn) {
+      this.elements.ttsToggleBtn.addEventListener('click', () => {
+        this.tts.toggle(!this.tts.enabled)
+        const btn = this.elements.ttsToggleBtn
+        if (this.tts.enabled) {
+          btn.classList.add('active')
+          btn.title = 'Read Aloud Translated Text (Enabled)'
+        } else {
+          btn.classList.remove('active')
+          btn.title = 'Read Aloud Translated Text (Disabled)'
+        }
+      })
+    }
   }
 
   // ── Model Loading ──────────────────────────────────────────────────────────
@@ -185,16 +205,30 @@ class TranslationApp {
 
   // ── Translation ────────────────────────────────────────────────────────────
 
-  async _doTranslate() {
+  async _doTranslate(isFinal = true) {
     if (!this.engine.isReady()) {
-      logStatus('Please load a model first.')
-      this._flashLoadBtn()
+      if (isFinal) {
+        logStatus('Please load a model first.')
+        this._flashLoadBtn()
+      }
       return
     }
-    if (this.isTranslating) return
 
     const text = this.elements.sourceInput.value.trim()
     if (!text) return
+
+    if (this.isTranslating) {
+      // If a translation is already in progress, queue the new request
+      // and try to interrupt the current one.
+      this._pendingTranslation = { isFinal }
+      if (this.engine.engine && typeof this.engine.engine.interruptGenerate === 'function') {
+        this.engine.engine.interruptGenerate()
+      }
+      return
+    }
+
+    this.isTranslating = true
+    this._pendingTranslation = null
 
     const sourceLang = SUPPORTED_LANGUAGES.find(
       (l) => l.code === this.elements.sourceLangSelect.value,
@@ -203,10 +237,14 @@ class TranslationApp {
       (l) => l.code === this.elements.targetLangSelect.value,
     )
 
-    if (!sourceLang || !targetLang) return
+    if (!sourceLang || !targetLang) {
+      this.isTranslating = false
+      return
+    }
 
-    this.isTranslating = true
-    this._setTranslateEnabled(false)
+    if (isFinal) {
+      this._setTranslateEnabled(false)
+    }
     this._showPlaceholder(false)
 
     try {
@@ -215,10 +253,16 @@ class TranslationApp {
         sourceName: sourceLang.name,
         targetName: targetLang.name,
         outputEl:   this.elements.translationOutput,
+        onSentence: (sentence) => {
+          if (isFinal && this.tts && this.tts.enabled) {
+            this.tts.speak(sentence, targetLang.bcp47)
+          }
+        }
       })
 
-      // Add to history
-      if (translated.trim()) {
+      // Add to history only if it's a final translation
+      // Also ensure we weren't interrupted by checking _pendingTranslation
+      if (isFinal && !this._pendingTranslation && translated.trim()) {
         this.history.add({
           original:   text,
           translated: translated.trim(),
@@ -229,10 +273,21 @@ class TranslationApp {
       }
     } catch (err) {
       logDebug(`Translation error: ${err.message}`)
-      this.elements.translationOutput.textContent = '⚠ Translation failed. Please try again.'
+      if (isFinal) {
+        this.elements.translationOutput.textContent = '⚠ Translation failed. Please try again.'
+      }
     } finally {
       this.isTranslating = false
-      this._setTranslateEnabled(true)
+      if (isFinal) {
+        this._setTranslateEnabled(true)
+      }
+
+      // Process queued translation if any
+      if (this._pendingTranslation) {
+        const next = this._pendingTranslation
+        this._pendingTranslation = null
+        this._doTranslate(next.isFinal)
+      }
     }
   }
 
@@ -287,22 +342,29 @@ class TranslationApp {
       this._updateMicUI(false)
     } else {
       const langCode = this.elements.sourceLangSelect.value
+      const sourceLang = SUPPORTED_LANGUAGES.find((l) => l.code === langCode)
+      const speechLang = sourceLang ? sourceLang.bcp47 : 'en-US'
+      
       const started = this.speech.start({
-        lang:      langCode + (langCode === 'zh' ? '-CN' : '-' + langCode.toUpperCase()),
+        lang: speechLang,
         onInterim: (interim) => {
           this._interimText = interim
-          // Show interim in source box (italicised via class)
+          // Show interim in source box
           this.elements.sourceInput.value = this._interimText
           this.elements.sourceInput.classList.add('interim')
+          
+          // Debounce interim translation (live translation)
+          clearTimeout(this._debounceTimer)
+          this._debounceTimer = setTimeout(() => this._doTranslate(false), 800)
         },
         onFinal: (final) => {
           this._interimText = ''
-          const current = this.elements.sourceInput.value.replace(/\s+$/, '')
-          this.elements.sourceInput.value = (current ? current + ' ' : '') + final
+          this.elements.sourceInput.value = final
           this.elements.sourceInput.classList.remove('interim')
+          
           // Auto-translate on final segment
           clearTimeout(this._debounceTimer)
-          this._debounceTimer = setTimeout(() => this._doTranslate(), 400)
+          this._debounceTimer = setTimeout(() => this._doTranslate(true), 400)
         },
         onError: (err) => {
           logDebug(`[Speech] Error: ${err}`)
