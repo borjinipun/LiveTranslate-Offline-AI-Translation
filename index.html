@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>LiveTranslate — AI-Powered Browser Translation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Real-time, offline AI translation powered by WebGPU. No server, no data sent — translate text and speech entirely in your browser."
+    />
+    <meta property="og:title" content="LiveTranslate — Offline AI Translation" />
+    <meta
+      property="og:description"
+      content="Translate text and speech locally with WebGPU-powered LLMs. No internet required after model download."
+    />
+    <meta property="og:type" content="website" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+
+    <!-- ── App Shell ───────────────────────────────────────────────────── -->
+    <div class="app-shell">
+
+      <!-- ── Top Bar ──────────────────────────────────────────────────── -->
+      <header class="topbar" role="banner">
+        <div class="topbar-brand">
+          <div class="brand-icon" aria-hidden="true">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="14" cy="14" r="13" stroke="url(#grad)" stroke-width="2"/>
+              <path d="M7 10h6M10 10v8M16 10l3 8M16 14h4" stroke="url(#grad)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <defs>
+                <linearGradient id="grad" x1="0" y1="0" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#818cf8"/>
+                  <stop offset="1" stop-color="#38bdf8"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <span class="brand-name">LiveTranslate</span>
+          <span class="brand-badge">WebGPU · Offline</span>
+        </div>
+
+        <!-- Model Loader (compact, in topbar) -->
+        <div class="topbar-model">
+          <div class="model-select-wrap">
+            <select id="model-select" aria-label="Select translation model"></select>
+          </div>
+          <button id="load-model-btn" class="btn btn-primary" aria-label="Load selected model">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v10m0 0l-3-3m3 3l3-3"/><path d="M3 14s0 7 9 7 9-7 9-7"/></svg>
+            Load Model
+          </button>
+        </div>
+
+        <!-- Top status / debug toggle -->
+        <div class="topbar-status">
+          <div id="top-status" class="topbar-status-text">Select a model to begin</div>
+        </div>
+      </header>
+
+      <!-- ── Resource Warning Banner ───────────────────────────────────── -->
+      <div id="resource-warning" class="warning-banner" style="display:none" role="alert">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span>Large model selected — requires a powerful GPU (&gt;4 GB VRAM).</span>
+        <button id="dismiss-warning" class="warning-dismiss" aria-label="Dismiss warning">×</button>
+      </div>
+
+      <!-- ── Status / Download Progress ───────────────────────────────── -->
+      <div id="status-container" class="status-bar" style="display:none">
+        <div id="status" class="status-text"></div>
+        <div id="status-progress-container" class="progress-wrap" style="display:none">
+          <div class="progress-rail">
+            <div id="status-progress-fill" class="progress-fill"></div>
+          </div>
+          <div id="status-progress-text" class="progress-pct">0%</div>
+        </div>
+      </div>
+      <!-- Duplicate hidden progress elements expected by llm-model.js -->
+      <div style="display:none">
+        <div id="progress-container">
+          <div id="progress-fill"></div>
+        </div>
+        <div id="progress-text"></div>
+      </div>
+
+      <!-- ── Main Workspace ────────────────────────────────────────────── -->
+      <main class="workspace" role="main">
+
+        <!-- ── Translation Panel ────────────────────────────────────── -->
+        <section class="translation-panel" aria-label="Translation workspace">
+
+          <!-- Language Selector Bar -->
+          <div class="lang-bar" role="group" aria-label="Language selection">
+            <div class="lang-select-wrap">
+              <select id="source-lang-select" class="lang-select" aria-label="Source language"></select>
+            </div>
+
+            <button id="swap-langs-btn" class="swap-btn" aria-label="Swap languages" title="Swap languages">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M7 16V4m0 0L3 8m4-4l4 4"/><path d="M17 8v12m0 0l4-4m-4 4l-4-4"/>
+              </svg>
+            </button>
+
+            <div class="lang-select-wrap">
+              <select id="target-lang-select" class="lang-select" aria-label="Target language"></select>
+            </div>
+          </div>
+
+          <!-- Source / Output Panes -->
+          <div class="panes">
+            <!-- Source Pane -->
+            <div class="pane pane-source">
+              <div class="pane-header">
+                <span class="pane-label">Source Text</span>
+                <div class="pane-actions">
+                  <span id="mic-status" class="mic-status-text" aria-live="polite"></span>
+                  <button
+                    id="mic-btn"
+                    class="icon-btn mic-btn"
+                    aria-label="Start microphone"
+                    title="Start voice input"
+                  >
+                    <!-- Mic icon -->
+                    <svg class="icon-mic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 2a3 3 0 013 3v7a3 3 0 01-6 0V5a3 3 0 013-3z"/>
+                      <path d="M19 10v2a7 7 0 01-14 0v-2"/>
+                      <line x1="12" y1="19" x2="12" y2="23"/>
+                      <line x1="8" y1="23" x2="16" y2="23"/>
+                    </svg>
+                    <!-- Pulse ring (visible when listening) -->
+                    <span class="mic-pulse" aria-hidden="true"></span>
+                  </button>
+                  <button id="clear-btn" class="icon-btn" aria-label="Clear text" title="Clear text">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                </div>
+              </div>
+              <textarea
+                id="source-input"
+                class="pane-textarea"
+                placeholder="Type or speak text to translate…"
+                aria-label="Source text input"
+                spellcheck="false"
+                disabled
+              ></textarea>
+            </div>
+
+            <!-- Divider -->
+            <div class="pane-divider" aria-hidden="true"></div>
+
+            <!-- Output Pane -->
+            <div class="pane pane-output">
+              <div class="pane-header">
+                <span class="pane-label">Translation</span>
+                <div class="pane-actions">
+                  <button
+                    id="translate-btn"
+                    class="btn btn-translate"
+                    aria-label="Translate"
+                    disabled
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    Translate
+                  </button>
+                </div>
+              </div>
+              <div
+                id="translation-output"
+                class="pane-output-area"
+                role="region"
+                aria-label="Translation output"
+                aria-live="polite"
+              >
+                <span class="output-placeholder">Translation will appear here…</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── History Sidebar ────────────────────────────────────────── -->
+        <aside class="history-sidebar" aria-label="Translation history">
+          <div class="history-header">
+            <h2 class="history-title">Session History</h2>
+            <button id="clear-history-btn" class="btn btn-ghost" aria-label="Clear history">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+              Clear
+            </button>
+          </div>
+          <div id="transcript-list" class="transcript-list" aria-live="polite"></div>
+        </aside>
+
+      </main>
+
+      <!-- Debug panel (hidden by default, toggle via console) -->
+      <div id="debug" style="display:none" aria-hidden="true"></div>
+    </div>
+
+    <!-- Dexie.js — IndexedDB wrapper (for model download cache tracking) -->
+    <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.js"></script>
+
+    <!-- WebLLM via CDN — no install needed -->
+    <script type="module" src="js/index.js"></script>
+  </body>
+</html>
