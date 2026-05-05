@@ -63,6 +63,9 @@
         <!-- Top status / debug toggle -->
         <div class="topbar-status">
           <div id="top-status" class="topbar-status-text">Select a model to begin</div>
+          <div class="offline-models-status" style="display: flex; gap: 10px; font-size: 0.8rem; margin-top: 4px; color: #a1a1aa;">
+            <div id="stt-status">STT: Loading...</div>
+          </div>
         </div>
       </header>
 
@@ -121,6 +124,9 @@
               <div class="pane-header">
                 <span class="pane-label">Source Text</span>
                 <div class="pane-actions">
+                  <label class="stt-toggle" style="font-size: 0.8rem; margin-right: 10px; display: flex; align-items: center; gap: 5px; color: #a1a1aa; cursor: pointer;">
+                    <input type="checkbox" id="stt-engine-toggle" checked> Offline STT
+                  </label>
                   <span id="mic-status" class="mic-status-text" aria-live="polite"></span>
                   <button
                     id="mic-btn"

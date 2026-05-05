@@ -30,8 +30,6 @@ class TranslationApp {
 
     // Current interim mic text (not yet finalized)
     this._interimText = ''
-    // Base text before the current speech segment started
-    this._baseText = ''
     // Debounce timer for auto-translate on text input
     this._debounceTimer = null
   }
@@ -55,7 +53,7 @@ class TranslationApp {
     this.engine.setElements(this.elements)
 
     logBrowserInfo()
-    logDebug(`Speech API supported: ${this.speech.isSupported}`)
+    logDebug(`Media API supported: ${this.speech.isSupported}`)
 
     // Pre-select default model
     const defaultId = 'Qwen2.5-1.5B-Instruct-q4f32_1-MLC'
@@ -65,6 +63,18 @@ class TranslationApp {
         this._updateResourceWarning()
         break
       }
+    }
+
+    // Connect STT loading status
+    if (this.elements.sttStatus) {
+      this.speech.onStatus((data) => {
+        if (data.status === 'ready') {
+          this.elements.sttStatus.textContent = 'STT: Ready';
+          this.elements.sttStatus.style.color = '#4ade80';
+        } else if (data.status === 'progress') {
+          this.elements.sttStatus.textContent = `STT: ${Math.round(data.progress)}%`;
+        }
+      });
     }
 
     // Initial empty transcript render
@@ -106,6 +116,14 @@ class TranslationApp {
         this.elements.resourceWarning.style.display = 'none'
         this.warningDismissed = true
       })
+    }
+
+    // Toggle STT engine
+    const sttToggle = document.getElementById(ELEMENT_IDS.sttEngineToggle);
+    if (sttToggle) {
+      sttToggle.addEventListener('change', (e) => {
+        this.speech.setEngine(e.target.checked);
+      });
     }
 
     // Language swap
@@ -278,6 +296,8 @@ class TranslationApp {
       }
     } finally {
       this.isTranslating = false
+      // Only re-enable if we are not actively listening, or if it's a final translation
+      // Actually, we want to leave inputs enabled/disabled appropriately.
       if (isFinal) {
         this._setTranslateEnabled(true)
       }
@@ -294,7 +314,10 @@ class TranslationApp {
   _setTranslateEnabled(enabled) {
     this.elements.translateBtn.disabled = !enabled
     this.elements.sourceInput.disabled  = !enabled
-    this.elements.micBtn.disabled       = !enabled
+    // Don't disable mic button if we are actively listening
+    if (!this.speech.isListening) {
+      this.elements.micBtn.disabled = !enabled
+    }
   }
 
   _showPlaceholder(show) {
@@ -348,23 +371,30 @@ class TranslationApp {
       const started = this.speech.start({
         lang: speechLang,
         onInterim: (interim) => {
-          this._interimText = interim
-          // Show interim in source box
-          this.elements.sourceInput.value = this._interimText
-          this.elements.sourceInput.classList.add('interim')
+          if (!interim.trim()) return;
           
-          // Debounce interim translation (live translation)
-          clearTimeout(this._debounceTimer)
-          this._debounceTimer = setTimeout(() => this._doTranslate(false), 800)
+          if (this._interimText !== interim) {
+            this._interimText = interim;
+            // Show interim in source box
+            this.elements.sourceInput.value = this._interimText;
+            this.elements.sourceInput.classList.add('interim');
+            
+            // Debounce visual interim translation
+            clearTimeout(this._debounceTimer);
+            this._debounceTimer = setTimeout(() => this._doTranslate(false), 800);
+          }
         },
         onFinal: (final) => {
-          this._interimText = ''
-          this.elements.sourceInput.value = final
-          this.elements.sourceInput.classList.remove('interim')
+          clearTimeout(this._debounceTimer);
           
-          // Auto-translate on final segment
-          clearTimeout(this._debounceTimer)
-          this._debounceTimer = setTimeout(() => this._doTranslate(true), 400)
+          if (final.trim()) {
+            this._interimText = '';
+            this.elements.sourceInput.value = final;
+            this.elements.sourceInput.classList.remove('interim');
+            
+            // Auto-translate on final segment
+            this._doTranslate(true);
+          }
         },
         onError: (err) => {
           logDebug(`[Speech] Error: ${err}`)

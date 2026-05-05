@@ -15,15 +15,6 @@ export const SUPPORTED_LANGUAGES = [
   { code: 'pt', name: 'Portuguese', flag: '🇵🇹', bcp47: 'pt-BR' },
   { code: 'ru', name: 'Russian',    flag: '🇷🇺', bcp47: 'ru-RU' },
   { code: 'hi', name: 'Hindi',      flag: '🇮🇳', bcp47: 'hi-IN' },
-  { code: 'bn', name: 'Bengali',    flag: '🇮🇳', bcp47: 'bn-IN' },
-  { code: 'te', name: 'Telugu',     flag: '🇮🇳', bcp47: 'te-IN' },
-  { code: 'mr', name: 'Marathi',    flag: '🇮🇳', bcp47: 'mr-IN' },
-  { code: 'ta', name: 'Tamil',      flag: '🇮🇳', bcp47: 'ta-IN' },
-  { code: 'ur', name: 'Urdu',       flag: '🇮🇳', bcp47: 'ur-IN' },
-  { code: 'gu', name: 'Gujarati',   flag: '🇮🇳', bcp47: 'gu-IN' },
-  { code: 'kn', name: 'Kannada',    flag: '🇮🇳', bcp47: 'kn-IN' },
-  { code: 'ml', name: 'Malayalam',  flag: '🇮🇳', bcp47: 'ml-IN' },
-  { code: 'pa', name: 'Punjabi',    flag: '🇮🇳', bcp47: 'pa-IN' },
   { code: 'it', name: 'Italian',    flag: '🇮🇹', bcp47: 'it-IT' },
 ]
 
@@ -107,6 +98,10 @@ export const ELEMENT_IDS = {
   transcriptPanel:   'transcript-panel',
   transcriptList:    'transcript-list',
   clearHistoryBtn:   'clear-history-btn',
+
+  // Offline Models Status
+  sttStatus:         'stt-status',
+  sttEngineToggle:   'stt-engine-toggle',
 
   // Debug
   debug:             'debug',
