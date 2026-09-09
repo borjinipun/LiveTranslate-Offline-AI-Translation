@@ -64,7 +64,7 @@ export const MODEL_DATA = [
 ]
 
 // ── WebLLM Version ───────────────────────────────────────────────────────────
-export const WEB_LLM_VERSION = '0.2.79'
+export const WEB_LLM_VERSION = '0.2.85'
 
 // ── App Modes ────────────────────────────────────────────────────────────────
 export const APP_MODES = {

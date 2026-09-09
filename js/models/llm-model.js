@@ -2,7 +2,7 @@
  * TranslationEngine — WebGPU-powered local translation via WebLLM.
  * Replaces the old LLMModel chat/RAG class.
  */
-import { CreateMLCEngine } from 'https://esm.run/@mlc-ai/web-llm@0.2.79'
+import { CreateMLCEngine } from 'https://esm.run/@mlc-ai/web-llm@0.2.85'
 import { logDebug, logError, logStatus } from '../utils/logger.js'
 import { calculateRemainingTime, updateProgress, checkWebGPUSupport } from '../utils/ui.js'
 import { isModelDownloaded, markModelDownloaded } from '../utils/db.js'
@@ -160,7 +160,7 @@ export default class TranslationEngine {
     if (!this.engine) throw new Error('No model loaded.')
     if (!text || !text.trim()) return ''
 
-    const systemPrompt = buildTranslationPrompt(null, sourceName, targetName)
+    const systemPrompt = buildTranslationPrompt(sourceName, targetName)
 
     const messages = [
       { role: 'system', content: systemPrompt },
